@@ -21,6 +21,12 @@ interface ISilo {
     /// @dev Reverts for debt asset type
     function redeem(uint256 _shares, address _receiver, address _owner) external returns (uint256 assets);
 
+    /// @notice Implements IERC4626.redeem for protected (non-borrowable) collateral and collateral
+    /// @dev Reverts for debt asset type
+    function redeem(uint256 _shares, address _receiver, address _owner, CollateralType _collateralType)
+        external
+        returns (uint256 assets);
+
     /// @notice Calculates the maximum amount of assets that can be borrowed by the given address
     /// @param _borrower Address of the potential borrower
     /// @return maxAssets Maximum amount of assets that the borrower can borrow, this value is underestimated
@@ -39,4 +45,8 @@ interface ISilo {
     /// @param _borrower Address responsible for the borrowed assets
     /// @return shares Amount of shares equivalent to the borrowed assets
     function borrow(uint256 _assets, address _receiver, address _borrower) external returns (uint256 shares);
+
+    /// @notice Implements IERC4626.previewRedeem for protected (non-borrowable) collateral and collateral
+    /// @dev Reverts for debt asset type
+    function previewRedeem(uint256 _shares, CollateralType _collateralType) external view returns (uint256 assets);
 }
