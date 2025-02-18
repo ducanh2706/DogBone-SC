@@ -40,11 +40,18 @@ contract ZapTest is Test {
 
     function test_depositSilo_noSwapData() public {
         uint256 depositAmount = 1e20;
-        deal(WS, address(zap), depositAmount);
+        deal(WS, alice, depositAmount);
         vm.startPrank(alice);
+        IERC20(WS).approve(address(zap), depositAmount);
         bytes memory result = zap.zap(
             Zap.Swap({fromToken: address(0), fromAmount: 0, router: address(0), data: "", value: 0}),
-            Zap.Strategy({vault: address(wS_Vault), token: WS, receiver: alice, funcSelector: Zap.depositSilo.selector})
+            Zap.Strategy({
+                vault: address(wS_Vault),
+                token: WS,
+                amount: depositAmount,
+                receiver: alice,
+                funcSelector: Zap.depositSilo.selector
+            })
         );
         vm.stopPrank();
 
@@ -70,7 +77,13 @@ contract ZapTest is Test {
                 data: abi.encodeWithSelector(this.mockSwap.selector, USDC, WS, depositAmount),
                 value: 0
             }),
-            Zap.Strategy({vault: address(wS_Vault), token: WS, receiver: alice, funcSelector: Zap.depositSilo.selector})
+            Zap.Strategy({
+                vault: address(wS_Vault),
+                token: WS,
+                receiver: alice,
+                amount: 0,
+                funcSelector: Zap.depositSilo.selector
+            })
         );
         vm.stopPrank();
 
