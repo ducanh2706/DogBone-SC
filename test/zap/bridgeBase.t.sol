@@ -141,4 +141,20 @@ abstract contract DebridgeZapBase is Test {
         // Remove first byte from data
         envelopData = BytesLib.slice(_externalCall, 1, _externalCall.length - 1);
     }
+
+    function mockSwap(address fromToken, address toToken, uint256 fromAmount) external payable {
+        if (fromToken == address(0)) {
+            require(msg.value >= fromAmount, "Insufficient  balance");
+        } else {
+            IERC20(fromToken).transferFrom(msg.sender, address(this), fromAmount);
+        }
+
+        if (toToken == address(0)) {
+            deal(address(this), fromAmount * 2);
+            payable(msg.sender).transfer(fromAmount * 2);
+        } else {
+            deal(toToken, address(this), fromAmount * 2);
+            IERC20(toToken).transfer(msg.sender, fromAmount * 2);
+        }
+    }
 }

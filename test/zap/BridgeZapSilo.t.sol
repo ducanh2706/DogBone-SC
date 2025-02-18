@@ -112,6 +112,37 @@ contract DebridgeZapSilo is DebridgeZapBase {
         assertApproxEqAbs(IERC20(USDC).balanceOf(alice), usdc_initial_amount + zapAmount, 1e2);
     }
 
+    function test_swapNativeAndZapSilo() public {
+        vm.startPrank(alice);
+
+        uint256 inAmount = 1e10;
+        deal(alice, inAmount);
+        zap.zap{value: inAmount}(
+            Zap.Swap({
+                fromToken: address(0),
+                fromAmount: inAmount,
+                router: address(this),
+                data: abi.encodeWithSelector(this.mockSwap.selector, address(0), USDC, inAmount),
+                value: inAmount
+            }),
+            Zap.Strategy({
+                vault: address(usdc_Vault),
+                token: USDC,
+                receiver: alice,
+                amount: 0,
+                funcSelector: Zap.depositSilo.selector
+            })
+        );
+        
+        vm.stopPrank();
+
+        (, address collateralSharesToken,) = s_usdc_siloConfig.getShareTokens(address(usdc_Vault));
+        uint256 userCollateralShares = IERC20(collateralSharesToken).balanceOf(alice);
+        uint256 userCollateralAssets = usdc_Vault.previewRedeem(userCollateralShares, ISilo.CollateralType.Collateral);
+        console.log("alice collateral shares", userCollateralShares);
+        console.log("alice collateral assets", userCollateralAssets);
+    }
+
     function _redeem(uint256 shares) internal returns (uint256 depositAssets) {
         vm.startPrank(alice);
         IERC20(address(usdc_Vault)).approve(address(usdc_Vault), shares);

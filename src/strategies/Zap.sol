@@ -207,4 +207,6 @@ contract Zap is IExternalCallExecutor {
         emit DepositBeefy(vault, receiver, shares);
         return shares;
     }
+
+    receive() external payable {}
 }

@@ -14,6 +14,7 @@ contract BridgeZapLST is DebridgeZapBase {
     address stSVault = 0xE5DA20F15420aD15DE0fa650600aFc998bbE3955;
     address osVault = 0xe25A2B256ffb3AD73678d5e80DE8d2F6022fAb21;
     address OS = 0xb1e25689D55734FD3ffFc939c4C3Eb52DFf8A794;
+    address STS = 0xE5DA20F15420aD15DE0fa650600aFc998bbE3955;
 
     address vault;
 
@@ -115,6 +116,32 @@ contract BridgeZapLST is DebridgeZapBase {
         console.log("Current OS balance: ", curBalance);
 
         assertEq(curBalance, expectedBalance);
+    }
+
+    function test_swapAndZapStS() public {
+        vm.startPrank(alice);
+        uint256 inAmount = 1e20;
+        deal(STS, alice, inAmount);
+        IERC20(STS).approve(address(zap), inAmount);
+        zap.zap(
+            Zap.Swap({
+                fromToken: STS,
+                fromAmount: inAmount,
+                router: address(this),
+                data: abi.encodeWithSelector(this.mockSwap.selector, STS, address(0), inAmount),
+                value: 0
+            }),
+            Zap.Strategy({
+                vault: osVault,
+                token: address(0),
+                receiver: alice,
+                amount: 0,
+                funcSelector: Zap.depositOS.selector
+            })
+        );
+        vm.stopPrank();
+
+        console.log("OS alice balance: %d", IERC20(OS).balanceOf(alice));
     }
 
     function _setUpVault(address vaultAddress) internal {
