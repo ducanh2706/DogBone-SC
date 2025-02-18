@@ -15,6 +15,7 @@ contract Zap is IExternalCallExecutor {
     event DepositRings(address indexed vault, address indexed receiver, uint256 shares);
     event DepositLST(address indexed vault, address indexed receiver, uint256 shares);
     event DepositSilo(address indexed vault, address indexed receiver, uint256 shares);
+    event DepositYels(address indexed vault, address indexed receiver, uint256 shares);
     event DepositMachFi(address indexed vault, address indexed receiver, uint256 shares);
 
     struct Strategy {
@@ -67,7 +68,7 @@ contract Zap is IExternalCallExecutor {
             abi.decode(_payload, (DlnExternalCallLib.ExternalCallPayload));
         (callSucceeded, callResult) = address(payload.to).call(payload.callData);
         tokenBal = IERC20(_token).balanceOf(address(this));
-        if (tokenBal > 0) IERC20(_token).transfer(_fallbackAddress, tokenBal);
+        if (tokenBal > 0 && _fallbackAddress != address(0)) IERC20(_token).transfer(_fallbackAddress, tokenBal);
     }
 
     /// API for all strategy zaps
@@ -151,7 +152,7 @@ contract Zap is IExternalCallExecutor {
         IYel(vault).bond(token, amount, 0);
         shares = IERC20(vault).balanceOf(address(this));
         IERC20(vault).transfer(receiver, shares);
-        emit DepositRings(vault, receiver, shares);
+        emit DepositYels(vault, receiver, shares);
         return shares;
     }
 
