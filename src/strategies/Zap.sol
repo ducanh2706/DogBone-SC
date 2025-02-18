@@ -135,9 +135,9 @@ contract Zap is IExternalCallExecutor {
         public
         returns (uint256 shares)
     {
-        if (amount > 0) IERC20(token).approve(vault, amount);
-        shares = IRings(vault).deposit(token, amount, 0);
         address lpToken = IRings(vault).vault();
+        if (amount > 0) IERC20(token).approve(lpToken, amount);
+        shares = IRings(vault).deposit(token, amount, 0);
         IERC20(lpToken).transfer(receiver, IERC20(lpToken).balanceOf(address(this)));
         emit DepositRings(vault, receiver, shares);
         return shares;

@@ -25,8 +25,6 @@ contract BridgeZapLST is DebridgeZapBase {
         vm.label(stSVault, "stSVault");
         vm.label(osVault, "osVault");
         vm.label(OS, "OS");
-
-        externalCall = _prepareExternalCall();
     }
 
     function test_zapIntoSTS() public {
