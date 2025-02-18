@@ -11,6 +11,7 @@ import {IYel} from "src/interfaces/yel/IYel.sol";
 import {IMachFiERC20} from "src/interfaces/machfi/IMachFiERC20.sol";
 import {IMachFiNative} from "src/interfaces/machfi/IMachFiNative.sol";
 import {IIChi} from "src/interfaces/ichi/IIChi.sol";
+import {IBeefy} from "src/interfaces/beefy/IBeefy.sol";
 
 contract Zap is IExternalCallExecutor {
     event DepositRings(address indexed vault, address indexed receiver, uint256 shares);
@@ -19,6 +20,7 @@ contract Zap is IExternalCallExecutor {
     event DepositYels(address indexed vault, address indexed receiver, uint256 shares);
     event DepositMachFi(address indexed vault, address indexed receiver, uint256 shares);
     event DepositIchi(address indexed vault, address indexed receiver, uint256 shares);
+    event DepositBeefy(address indexed vault, address indexed receiver, uint256 shares);
 
     struct Strategy {
         address vault;
@@ -189,7 +191,20 @@ contract Zap is IExternalCallExecutor {
         return shares;
     }
 
-    function depositEggs(address vault, address token, address receiver, uint256 amount) public {}
+    function depositBeefy(address vault, address token, address receiver, uint256 amount)
+        public
+        returns (uint256 shares)
+    {
+        address iChiVault = IBeefy(vault).want();
+        depositIchi(iChiVault, token, address(this), amount);
 
-    function depositEggsLeverage(address vault, address token, address receiver, uint256 amount) public {}
+        uint256 ichiShares = IERC20(iChiVault).balanceOf(address(this));
+        IERC20(iChiVault).approve(vault, ichiShares);
+        IBeefy(vault).deposit(ichiShares);
+
+        shares = IERC20(vault).balanceOf(address(this));
+        IERC20(vault).transfer(receiver, shares);
+        emit DepositBeefy(vault, receiver, shares);
+        return shares;
+    }
 }
