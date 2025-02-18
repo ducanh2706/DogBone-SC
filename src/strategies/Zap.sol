@@ -10,6 +10,7 @@ import {IRings} from "src/interfaces/rings/IRings.sol";
 import {IYel} from "src/interfaces/yel/IYel.sol";
 import {IMachFiERC20} from "src/interfaces/machfi/IMachFiERC20.sol";
 import {IMachFiNative} from "src/interfaces/machfi/IMachFiNative.sol";
+import {IIChi} from "src/interfaces/ichi/IIChi.sol";
 
 contract Zap is IExternalCallExecutor {
     event DepositRings(address indexed vault, address indexed receiver, uint256 shares);
@@ -17,6 +18,7 @@ contract Zap is IExternalCallExecutor {
     event DepositSilo(address indexed vault, address indexed receiver, uint256 shares);
     event DepositYels(address indexed vault, address indexed receiver, uint256 shares);
     event DepositMachFi(address indexed vault, address indexed receiver, uint256 shares);
+    event DepositIchi(address indexed vault, address indexed receiver, uint256 shares);
 
     struct Strategy {
         address vault;
@@ -172,9 +174,20 @@ contract Zap is IExternalCallExecutor {
         return shares;
     }
 
-    function depositIchi(address vault, address token, address receiver, uint256 amount) public {}
+    function depositIchi(address vault, address token, address receiver, uint256 amount)
+        public
+        returns (uint256 shares)
+    {
+        if (amount > 0) {
+            IERC20(token).approve(vault, amount);
+        }
 
-    function depositBeefy(address vault, address token, address receiver, uint256 amount) public {}
+        bool allowToken0 = IIChi(vault).allowToken0();
+        shares = IIChi(vault).deposit(allowToken0 ? amount : 0, !allowToken0 ? amount : 0, receiver);
+
+        emit DepositIchi(vault, receiver, shares);
+        return shares;
+    }
 
     function depositEggs(address vault, address token, address receiver, uint256 amount) public {}
 
