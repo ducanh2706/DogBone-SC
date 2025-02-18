@@ -7,11 +7,15 @@ import {IExternalCallExecutor} from "src/interfaces/debridge/IExternalCallExecut
 import {DlnExternalCallLib} from "src/interfaces/debridge/DLNExternalCallLib.sol";
 import {ILST} from "src/interfaces/LST/ILST.sol";
 import {IRings} from "src/interfaces/rings/IRings.sol";
+import {IYel} from "src/interfaces/yel/IYel.sol";
+import {IMachFiERC20} from "src/interfaces/machfi/IMachFiERC20.sol";
+import {IMachFiNative} from "src/interfaces/machfi/IMachFiNative.sol";
 
 contract Zap is IExternalCallExecutor {
     event DepositRings(address indexed vault, address indexed receiver, uint256 shares);
     event DepositLST(address indexed vault, address indexed receiver, uint256 shares);
     event DepositSilo(address indexed vault, address indexed receiver, uint256 shares);
+    event DepositMachFi(address indexed vault, address indexed receiver, uint256 shares);
 
     struct Strategy {
         address vault;
@@ -28,6 +32,8 @@ contract Zap is IExternalCallExecutor {
         bytes data;
         uint256 value;
     }
+
+    address public constant NATIVE_TOKEN = address(0);
 
     /// Zap with tokens on the same chain. Swap first, then deposit
     /// @param swapData swap Data
@@ -66,16 +72,18 @@ contract Zap is IExternalCallExecutor {
 
     /// API for all strategy zaps
     /// @param T strategy Data
-    function doStrategy(Strategy memory T) public returns (bytes memory) {
+    function doStrategy(Strategy memory T) public payable returns (bytes memory) {
         if (T.amount > 0) {
-            IERC20(T.token).transferFrom(msg.sender, address(this), T.amount);
+            if (NATIVE_TOKEN == T.token) {
+                require(msg.value >= T.amount, "Incorrect native amount");
+            } else {
+                IERC20(T.token).transferFrom(msg.sender, address(this), T.amount);
+            }
         }
 
-        (bool success, bytes memory data) = address(this).call(
-            abi.encodeWithSelector(
-                T.funcSelector, T.vault, T.token, T.receiver, IERC20(T.token).balanceOf(address(this))
-            )
-        );
+        uint256 tokenBal = T.token == NATIVE_TOKEN ? address(this).balance : IERC20(T.token).balanceOf(address(this));
+        (bool success, bytes memory data) =
+            address(this).call(abi.encodeWithSelector(T.funcSelector, T.vault, T.token, T.receiver, tokenBal));
         require(success, "Strategy Zap Failed");
         return data;
     }
@@ -107,10 +115,18 @@ contract Zap is IExternalCallExecutor {
         return shares;
     }
 
-    function depositLST(address vault, address, address receiver, uint256 amount) public returns (uint256 shares) {
+    function depositStS(address vault, address, address receiver, uint256 amount) public returns (uint256 shares) {
         ILST(vault).deposit{value: amount}();
         shares = IERC20(vault).balanceOf(address(this));
-        IERC20(vault).transfer(receiver, IERC20(vault).balanceOf(address(this)));
+        IERC20(vault).transfer(receiver, shares);
+        emit DepositLST(vault, receiver, shares);
+        return shares;
+    }
+
+    function depositOS(address vault, address, address receiver, uint256 amount) public returns (uint256 shares) {
+        ILST(vault).deposit{value: amount}();
+        shares = IERC20(ILST(vault).OS()).balanceOf(address(this));
+        IERC20(ILST(vault).OS()).transfer(receiver, shares);
         emit DepositLST(vault, receiver, shares);
         return shares;
     }
@@ -127,11 +143,33 @@ contract Zap is IExternalCallExecutor {
         return shares;
     }
 
-    function depositYels(address vault, address token, address receiver, uint256 amount) public {
-        
+    function depositYels(address vault, address token, address receiver, uint256 amount)
+        public
+        returns (uint256 shares)
+    {
+        if (amount > 0) IERC20(token).approve(vault, amount);
+        IYel(vault).bond(token, amount, 0);
+        shares = IERC20(vault).balanceOf(address(this));
+        IERC20(vault).transfer(receiver, shares);
+        emit DepositRings(vault, receiver, shares);
+        return shares;
     }
 
-    function depositMachFi(address vault, address token, address receiver, uint256 amount) public {}
+    function depositMachFi(address vault, address token, address receiver, uint256 amount)
+        public
+        returns (uint256 shares)
+    {
+        if (token == NATIVE_TOKEN) {
+            IMachFiNative(vault).mintAsCollateral{value: amount}();
+        } else {
+            IERC20(token).approve(vault, amount);
+            IMachFiERC20(vault).mintAsCollateral(amount);
+        }
+        shares = IERC20(vault).balanceOf(address(this));
+        IERC20(vault).transfer(receiver, shares);
+        emit DepositMachFi(vault, receiver, shares);
+        return shares;
+    }
 
     function depositIchi(address vault, address token, address receiver, uint256 amount) public {}
 

@@ -11,7 +11,7 @@ import {ISiloConfig} from "src/interfaces/silo/ISiloConfig.sol";
 import {ISilo} from "src/interfaces/silo/ISilo.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Zap} from "src/strategies/Zap.sol";
-import {DebridgeZapBase} from "test/zap/bridgeBase.t.sol";
+import {DebridgeZapBase} from "test/zap/BridgeBase.t.sol";
 
 contract DebridgeZapSilo is DebridgeZapBase {
     // SILO ADDRESS
