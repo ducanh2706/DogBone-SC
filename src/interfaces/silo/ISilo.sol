@@ -49,4 +49,8 @@ interface ISilo {
     /// @notice Implements IERC4626.previewRedeem for protected (non-borrowable) collateral and collateral
     /// @dev Reverts for debt asset type
     function previewRedeem(uint256 _shares, CollateralType _collateralType) external view returns (uint256 assets);
+
+    function config() external view returns (address);
+
+    function asset() external view returns (address);
 }

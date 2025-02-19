@@ -12,8 +12,11 @@ import {IMachFiERC20} from "src/interfaces/machfi/IMachFiERC20.sol";
 import {IMachFiNative} from "src/interfaces/machfi/IMachFiNative.sol";
 import {IIChi} from "src/interfaces/ichi/IIChi.sol";
 import {IBeefy} from "src/interfaces/beefy/IBeefy.sol";
+import {ISiloConfig} from "src/interfaces/silo/ISiloConfig.sol";
+import {IERC3156FlashBorrower} from "src/interfaces/flashloan/IERC3156FlashBorrower.sol";
+import {IERC3156FlashLender} from "src/interfaces/flashloan/IERC3156FlashLender.sol";
 
-contract Zap is IExternalCallExecutor {
+contract Zap is IExternalCallExecutor, IERC3156FlashBorrower {
     event DepositRings(address indexed vault, address indexed receiver, uint256 shares);
     event DepositLST(address indexed vault, address indexed receiver, uint256 shares);
     event DepositSilo(address indexed vault, address indexed receiver, uint256 shares);
@@ -21,6 +24,7 @@ contract Zap is IExternalCallExecutor {
     event DepositMachFi(address indexed vault, address indexed receiver, uint256 shares);
     event DepositIchi(address indexed vault, address indexed receiver, uint256 shares);
     event DepositBeefy(address indexed vault, address indexed receiver, uint256 shares);
+    event DepositDogBone(address indexed vault, uint256 indexed leverage, address indexed receiver, uint256 shares);
 
     struct Strategy {
         address vault;
@@ -28,6 +32,9 @@ contract Zap is IExternalCallExecutor {
         uint256 amount;
         address receiver;
         bytes4 funcSelector;
+        uint256 leverage;
+        uint256 flashAmount;
+        Swap swapFlashloan;
     }
 
     struct Swap {
@@ -87,8 +94,15 @@ contract Zap is IExternalCallExecutor {
         }
 
         uint256 tokenBal = T.token == NATIVE_TOKEN ? address(this).balance : IERC20(T.token).balanceOf(address(this));
-        (bool success, bytes memory data) =
-            address(this).call(abi.encodeWithSelector(T.funcSelector, T.vault, T.token, T.receiver, tokenBal));
+        bool success;
+        bytes memory data;
+
+        if (T.leverage == 0) {
+            (success, data) =
+                address(T.vault).call(abi.encodeWithSelector(T.funcSelector, T.vault, T.token, T.receiver, tokenBal));
+        } else {
+            (success, data) = address(this).call(abi.encodeWithSelector(T.funcSelector, T));
+        }
         require(success, "Strategy Zap Failed");
         return data;
     }
@@ -208,5 +222,37 @@ contract Zap is IExternalCallExecutor {
         return shares;
     }
 
+    function depositDogBone(Strategy memory T) public {
+        address siloConfig = ISilo(T.vault).config();
+        address borrowVault;
+        {
+            (address silo0, address silo1) = ISiloConfig(siloConfig).getSilos();
+            borrowVault = T.vault == silo0 ? silo1 : silo0;
+        }
+
+        bool ok = IERC3156FlashLender(borrowVault).flashLoan(
+            IERC3156FlashBorrower(address(this)), ISilo(borrowVault).asset(), T.flashAmount, abi.encode(T)
+        );
+
+        require(ok, "Flash loan failed");
+    }
+
     receive() external payable {}
+
+    function onFlashLoan(address, address _token, uint256 _amount, uint256 _fee, bytes calldata _data)
+        external
+        returns (bytes32)
+    {
+        Strategy memory T = abi.decode(_data, (Strategy));
+        IERC20(_token).approve(T.swapFlashloan.router, _amount);
+        (bool success,) = T.swapFlashloan.router.call{value: T.swapFlashloan.value}(T.swapFlashloan.data);
+        require(success, "Swap failed");
+        IERC20(T.token).approve(T.vault, IERC20(T.token).balanceOf(address(this)));
+        uint256 shares = depositSilo(T.vault, T.token, T.receiver, IERC20(T.token).balanceOf(address(this)));
+        // borrow required amount to pay back flash loan
+        ISilo(msg.sender).borrow(_amount + _fee, address(this), T.receiver);
+        IERC20(_token).approve(msg.sender, _amount + _fee);
+        emit DepositDogBone(T.vault, T.leverage, T.receiver, shares);
+        return keccak256("ERC3156FlashBorrower.onFlashLoan");
+    }
 }

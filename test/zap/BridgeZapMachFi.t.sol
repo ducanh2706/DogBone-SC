@@ -143,7 +143,16 @@ contract BridgeZapMachFi is DebridgeZapBase {
                         token: address(token),
                         receiver: alice,
                         amount: 0,
-                        funcSelector: Zap.depositMachFi.selector
+                        funcSelector: Zap.depositMachFi.selector,
+                        leverage: 0,
+                        flashAmount: 0,
+                        swapFlashloan: Zap.Swap({
+                            fromToken: address(0),
+                            fromAmount: 0,
+                            router: address(0),
+                            data: new bytes(0),
+                            value: 0
+                        })
                     })
                 )
             })

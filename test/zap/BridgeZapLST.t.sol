@@ -136,7 +136,16 @@ contract BridgeZapLST is DebridgeZapBase {
                 token: address(0),
                 receiver: alice,
                 amount: 0,
-                funcSelector: Zap.depositOS.selector
+                funcSelector: Zap.depositOS.selector,
+                leverage: 0,
+                flashAmount: 0,
+                swapFlashloan: Zap.Swap({
+                    fromToken: address(0),
+                    fromAmount: 0,
+                    router: address(0),
+                    data: new bytes(0),
+                    value: 0
+                })
             })
         );
         vm.stopPrank();
@@ -161,7 +170,16 @@ contract BridgeZapLST is DebridgeZapBase {
                         token: address(0),
                         receiver: alice,
                         amount: 0,
-                        funcSelector: vault == stSVault ? Zap.depositStS.selector : Zap.depositOS.selector
+                        funcSelector: vault == stSVault ? Zap.depositStS.selector : Zap.depositOS.selector,
+                        leverage: 0,
+                        flashAmount: 0,
+                        swapFlashloan: Zap.Swap({
+                            fromToken: address(0),
+                            fromAmount: 0,
+                            router: address(0),
+                            data: new bytes(0),
+                            value: 0
+                        })
                     })
                 )
             })

@@ -54,7 +54,16 @@ contract DebridgeZapSilo is DebridgeZapBase {
                         token: USDC,
                         receiver: alice,
                         amount: 0,
-                        funcSelector: Zap.depositSilo.selector
+                        funcSelector: Zap.depositSilo.selector,
+                        leverage: 0,
+                        flashAmount: 0,
+                        swapFlashloan: Zap.Swap({
+                            fromToken: address(0),
+                            fromAmount: 0,
+                            router: address(0),
+                            data: new bytes(0),
+                            value: 0
+                        })
                     })
                 )
             })
@@ -130,10 +139,19 @@ contract DebridgeZapSilo is DebridgeZapBase {
                 token: USDC,
                 receiver: alice,
                 amount: 0,
-                funcSelector: Zap.depositSilo.selector
+                funcSelector: Zap.depositSilo.selector,
+                leverage: 0,
+                flashAmount: 0,
+                swapFlashloan: Zap.Swap({
+                    fromToken: address(0),
+                    fromAmount: 0,
+                    router: address(0),
+                    data: new bytes(0),
+                    value: 0
+                })
             })
         );
-        
+
         vm.stopPrank();
 
         (, address collateralSharesToken,) = s_usdc_siloConfig.getShareTokens(address(usdc_Vault));
