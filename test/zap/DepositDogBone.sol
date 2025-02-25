@@ -39,6 +39,10 @@ contract DepositDogBone is Test {
         zap = new Zap();
     }
 
+    function test_cc() public {
+        console.logBytes4(Zap.depositDogBone.selector);
+    }
+
     function test_depositDogBone() public {
         uint256 depositAmount = 1e20;
         uint256 flashAmount = 140e6;
@@ -56,6 +60,7 @@ contract DepositDogBone is Test {
                 funcSelector: Zap.depositDogBone.selector,
                 leverage: 1,
                 flashAmount: flashAmount,
+                isProtected: false,
                 swapFlashloan: Zap.Swap({
                     fromToken: USDC,
                     fromAmount: flashAmount,

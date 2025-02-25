@@ -105,6 +105,7 @@ contract BridgeZapIChi is DebridgeZapBase {
                         funcSelector: Zap.depositIchi.selector,
                         leverage: 0,
                         flashAmount: 0,
+                        isProtected: false,
                         swapFlashloan: Zap.Swap({
                             fromToken: address(0),
                             fromAmount: 0,

@@ -57,6 +57,7 @@ contract DebridgeZapSilo is DebridgeZapBase {
                         funcSelector: Zap.depositSilo.selector,
                         leverage: 0,
                         flashAmount: 0,
+                        isProtected: false,
                         swapFlashloan: Zap.Swap({
                             fromToken: address(0),
                             fromAmount: 0,
@@ -141,7 +142,9 @@ contract DebridgeZapSilo is DebridgeZapBase {
                 amount: 0,
                 funcSelector: Zap.depositSilo.selector,
                 leverage: 0,
-                flashAmount: 0,
+                        flashAmount: 0,
+
+isProtected: false,
                 swapFlashloan: Zap.Swap({
                     fromToken: address(0),
                     fromAmount: 0,

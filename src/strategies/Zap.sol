@@ -34,6 +34,7 @@ contract Zap is IExternalCallExecutor, IERC3156FlashBorrower {
         bytes4 funcSelector;
         uint256 leverage;
         uint256 flashAmount;
+        bool isProtected;
         Swap swapFlashloan;
     }
 
@@ -99,7 +100,7 @@ contract Zap is IExternalCallExecutor, IERC3156FlashBorrower {
 
         if (T.leverage == 0) {
             (success, data) =
-                address(T.vault).call(abi.encodeWithSelector(T.funcSelector, T.vault, T.token, T.receiver, tokenBal));
+                address(this).call(abi.encodeWithSelector(T.funcSelector, T.vault, T.token, T.receiver, tokenBal));
         } else {
             (success, data) = address(this).call(abi.encodeWithSelector(T.funcSelector, T));
         }
@@ -248,11 +249,24 @@ contract Zap is IExternalCallExecutor, IERC3156FlashBorrower {
         (bool success,) = T.swapFlashloan.router.call{value: T.swapFlashloan.value}(T.swapFlashloan.data);
         require(success, "Swap failed");
         IERC20(T.token).approve(T.vault, IERC20(T.token).balanceOf(address(this)));
-        uint256 shares = depositSilo(T.vault, T.token, T.receiver, IERC20(T.token).balanceOf(address(this)));
+        uint256 shares =
+            _depositSilo(T.vault, T.token, T.receiver, IERC20(T.token).balanceOf(address(this)), T.isProtected);
         // borrow required amount to pay back flash loan
         ISilo(msg.sender).borrow(_amount + _fee, address(this), T.receiver);
         IERC20(_token).approve(msg.sender, _amount + _fee);
         emit DepositDogBone(T.vault, T.leverage, T.receiver, shares);
         return keccak256("ERC3156FlashBorrower.onFlashLoan");
+    }
+
+    function _depositSilo(address vault, address token, address receiver, uint256 amount, bool isProtected)
+        internal
+        returns (uint256 shares)
+    {
+        if (amount > 0) IERC20(token).approve(vault, amount);
+        shares = ISilo(vault).deposit(
+            amount, receiver, isProtected ? ISilo.CollateralType.Protected : ISilo.CollateralType.Collateral
+        );
+        emit DepositSilo(vault, receiver, shares);
+        return shares;
     }
 }

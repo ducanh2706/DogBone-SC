@@ -41,7 +41,7 @@ contract BridgeZapMachFi is DebridgeZapBase {
         token = SONIC;
         externalCall = _prepareExternalCall();
 
-        uint256 zapAmount = 1e22;
+        uint256 zapAmount = 1e18;
         _deposit(zapAmount);
     }
 
@@ -68,7 +68,7 @@ contract BridgeZapMachFi is DebridgeZapBase {
         token = SCUSD;
         externalCall = _prepareExternalCall();
 
-        uint256 zapAmount = 1e10;
+        uint256 zapAmount = 1e6;
         _deposit(zapAmount);
     }
 
@@ -146,6 +146,7 @@ contract BridgeZapMachFi is DebridgeZapBase {
                         funcSelector: Zap.depositMachFi.selector,
                         leverage: 0,
                         flashAmount: 0,
+                        isProtected: false,
                         swapFlashloan: Zap.Swap({
                             fromToken: address(0),
                             fromAmount: 0,

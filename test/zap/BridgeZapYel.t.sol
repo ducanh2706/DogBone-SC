@@ -121,6 +121,7 @@ contract BridgeZapYel is DebridgeZapBase {
                         funcSelector: Zap.depositYels.selector,
                         leverage: 0,
                         flashAmount: 0,
+                        isProtected: false,
                         swapFlashloan: Zap.Swap({
                             fromToken: address(0),
                             fromAmount: 0,
