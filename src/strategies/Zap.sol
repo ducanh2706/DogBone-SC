@@ -252,6 +252,7 @@ contract Zap is IExternalCallExecutor, IERC3156FlashBorrower {
     }
 
     receive() external payable {}
+    fallback() external payable {}
 
     function onFlashLoan(address, address _token, uint256 _amount, uint256 _fee, bytes calldata _data)
         external
