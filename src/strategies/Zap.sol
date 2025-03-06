@@ -15,6 +15,7 @@ import {IBeefy} from "src/interfaces/beefy/IBeefy.sol";
 import {ISiloConfig} from "src/interfaces/silo/ISiloConfig.sol";
 import {IERC3156FlashBorrower} from "src/interfaces/flashloan/IERC3156FlashBorrower.sol";
 import {IERC3156FlashLender} from "src/interfaces/flashloan/IERC3156FlashLender.sol";
+import {IAave} from "src/interfaces/aave/IAave.sol";
 
 contract Zap is IExternalCallExecutor, IERC3156FlashBorrower {
     event DepositRings(address indexed vault, address indexed receiver, uint256 shares);
@@ -46,6 +47,8 @@ contract Zap is IExternalCallExecutor, IERC3156FlashBorrower {
         uint256 value;
     }
 
+    address public constant AAVE = 0x5362dBb1e601abF3a4c14c22ffEdA64042E5eAA3;
+    address public constant VICUNA = 0xaa1C02a83362BcE106dFf6eB65282fE8B97A1665;
     address public constant NATIVE_TOKEN = address(0);
 
     /// Zap with tokens on the same chain. Swap first, then deposit
@@ -125,6 +128,16 @@ contract Zap is IExternalCallExecutor, IERC3156FlashBorrower {
     }
 
     //// STRATEGY FUNCTIONS //////
+    function depositAave(address, address token, address receiver, uint256 amount) public {
+        if (amount > 0) IERC20(token).approve(AAVE, amount);
+        IAave(AAVE).supply(token, amount, receiver, 0);
+    }
+
+    function depositVicuna(address, address token, address receiver, uint256 amount) public {
+        if (amount > 0) IERC20(token).approve(VICUNA, amount);
+        IAave(VICUNA).supply(token, amount, receiver, 0);
+    }
+
     function depositSilo(address vault, address token, address receiver, uint256 amount)
         public
         returns (uint256 shares)

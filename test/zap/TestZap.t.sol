@@ -52,9 +52,8 @@ contract ZapTest is Test {
                 receiver: alice,
                 funcSelector: Zap.depositSilo.selector,
                 leverage: 0,
-                        flashAmount: 0,
-
-isProtected: false,
+                flashAmount: 0,
+                isProtected: false,
                 swapFlashloan: Zap.Swap({
                     fromToken: address(0),
                     fromAmount: 0,

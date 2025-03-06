@@ -138,7 +138,7 @@ contract BridgeZapLST is DebridgeZapBase {
                 amount: 0,
                 funcSelector: Zap.depositOS.selector,
                 leverage: 0,
-                        flashAmount: 0,
+                flashAmount: 0,
                 isProtected: false,
                 swapFlashloan: Zap.Swap({
                     fromToken: address(0),

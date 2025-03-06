@@ -42,6 +42,43 @@ contract DebridgeZapSilo is DebridgeZapBase {
         externalCall = _prepareExternalCall();
     }
 
+    function test_depositVicuna() public {
+        vm.startPrank(alice);
+
+        uint256 inAmount = 987654332;
+        IERC20(USDC).approve(address(zap), inAmount);
+        zap.zap(
+            Zap.Swap({
+                fromToken: USDC,
+                fromAmount: inAmount,
+                router: address(0),
+                data: abi.encodeWithSelector(this.mockSwap.selector, USDC, address(0), inAmount),
+                value: 0
+            }),
+            Zap.Strategy({
+                vault: address(usdc_Vault),
+                token: USDC,
+                receiver: alice,
+                amount: inAmount,
+                funcSelector: Zap.depositVicuna.selector,
+                leverage: 0,
+                flashAmount: 0,
+                isProtected: false,
+                swapFlashloan: Zap.Swap({
+                    fromToken: address(0),
+                    fromAmount: 0,
+                    router: address(0),
+                    data: new bytes(0),
+                    value: 0
+                })
+            })
+        );
+
+        address usdc_vicuna_vault = 0xF224CB039F2B5909197c019b1972E62d7fdCdA0f;
+        console.log("USDC Vicuna Vault balance", IERC20(usdc_vicuna_vault).balanceOf(alice));
+        vm.stopPrank();
+    }
+
     function _prepareExternalCall() internal view override returns (bytes memory) {
         bytes memory payload = abi.encode(
             DlnExternalCallLib.ExternalCallPayload({
@@ -142,9 +179,8 @@ contract DebridgeZapSilo is DebridgeZapBase {
                 amount: 0,
                 funcSelector: Zap.depositSilo.selector,
                 leverage: 0,
-                        flashAmount: 0,
-
-isProtected: false,
+                flashAmount: 0,
+                isProtected: false,
                 swapFlashloan: Zap.Swap({
                     fromToken: address(0),
                     fromAmount: 0,
