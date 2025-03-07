@@ -164,6 +164,14 @@ contract Zap is IExternalCallExecutor, IERC3156FlashBorrower {
         return shares;
     }
 
+    function depositANS(address vault, address, address receiver, uint256 amount) public returns (uint256 shares) {
+        ILST(vault).deposit{value: amount}();
+        shares = IERC20(ILST(vault).ans()).balanceOf(address(this));
+        IERC20(ILST(vault).ans()).transfer(receiver, shares);
+        emit DepositLST(vault, receiver, shares);
+        return shares;
+    }
+
     function depositRings(address vault, address token, address receiver, uint256 amount)
         public
         returns (uint256 shares)
