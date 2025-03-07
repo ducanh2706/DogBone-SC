@@ -15,6 +15,9 @@ contract BridgeZapLST is DebridgeZapBase {
     address osVault = 0xe25A2B256ffb3AD73678d5e80DE8d2F6022fAb21;
     address OS = 0xb1e25689D55734FD3ffFc939c4C3Eb52DFf8A794;
     address STS = 0xE5DA20F15420aD15DE0fa650600aFc998bbE3955;
+    address anSVault = 0xe5203Be1643465b3c0De28fd2154843497Ef4269;
+    address ANS = 0x0C4E186Eae8aCAA7F7de1315D5AD174BE39Ec987;
+
 
     address vault;
 
@@ -26,6 +29,13 @@ contract BridgeZapLST is DebridgeZapBase {
         vm.label(stSVault, "stSVault");
         vm.label(osVault, "osVault");
         vm.label(OS, "OS");
+    }
+
+    function test_depositANS() public {
+        deal(address(zap), 1e18);
+        zap.depositANS(anSVault, address(0), alice, 1e18);
+
+        console.log("ANS alice balance: %d", IERC20(ANS).balanceOf(alice));
     }
 
     function test_zapIntoSTS() public {

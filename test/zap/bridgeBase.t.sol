@@ -19,7 +19,7 @@ abstract contract DebridgeZapBase is Test {
     error FailedExecuteExternalCall();
 
     string SONIC_RPC_URL = vm.envString("SONIC_RPC_URL");
-    uint256 blockFork = 6914041;
+    uint256 blockFork = 12192840;
     uint256 sonicFork;
 
     address alice = makeAddr("alice");
