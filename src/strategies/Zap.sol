@@ -129,9 +129,7 @@ contract Zap is IExternalCallExecutor, IERC3156FlashBorrower {
 
     //// STRATEGY FUNCTIONS //////
 
-    function depositPendle(address, address, address, uint256) public {
-
-    }
+    function depositPendle(address, address, address, uint256) public {}
 
     function depositAave(address, address token, address receiver, uint256 amount) public {
         if (amount > 0) IERC20(token).approve(AAVE, amount);
