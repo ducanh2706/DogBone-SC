@@ -34,7 +34,9 @@ contract Withdraw is IWithdraw {
 
     function withdrawSilo(bytes memory _siloWithdrawData) public override returns (uint256 amountOut) {
         SiloWithdrawData memory withdrawData = abi.decode(_siloWithdrawData, (SiloWithdrawData));
-        ISilo(withdrawData.vault).withdraw(withdrawData.amount, address(this), address(this), withdrawData.collateralType);
+        ISilo(withdrawData.vault).withdraw(
+            withdrawData.amount, address(this), address(this), withdrawData.collateralType
+        );
         amountOut = withdrawData.amount;
     }
 
@@ -76,7 +78,7 @@ contract Withdraw is IWithdraw {
             borrowVault = withdrawData.vault == silo0 ? silo1 : silo0;
         }
 
-        uint256 beforeBalance = IERC20(withdrawData.underlyingAsset).balanceOf(address(this));  
+        uint256 beforeBalance = IERC20(withdrawData.underlyingAsset).balanceOf(address(this));
         bool ok = IERC3156FlashLender(withdrawData.flashLoanWhere).flashLoan(
             IERC3156FlashBorrower(address(this)),
             withdrawData.underlyingAsset,
@@ -122,12 +124,16 @@ contract Withdraw is IWithdraw {
         // Repay borrow token
         {
             uint256 borrowTokenBalance = IERC20(borrowedToken).balanceOf(address(this));
-            ISilo(borrowVault).repay(borrowTokenBalance, address(this));
+            IERC20(borrowedToken).approve(borrowVault, borrowTokenBalance);
+            ISilo(borrowVault).repay(borrowTokenBalance, _receiver);
+            IERC20(borrowedToken).approve(borrowVault, 0);
         }
 
         // Withdraw from silo
         {
-            ISilo(withdrawData.vault).withdraw(withdrawData.amount, address(this), _receiver, withdrawData.collateralType);
+            ISilo(withdrawData.vault).withdraw(
+                withdrawData.amount, address(this), _receiver, withdrawData.collateralType
+            );
         }
 
         // payback flashloan

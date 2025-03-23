@@ -141,6 +141,8 @@ contract ZapOut is IZapOut, Ownable {
         }
     }
 
+    receive() external payable {}
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     function onFlashLoan(address, address _token, uint256 _amount, uint256 _fee, bytes calldata _data)
@@ -166,7 +168,6 @@ contract ZapOut is IZapOut, Ownable {
                 revert("ZapOut: onFlashLoan failed (unknown error)");
             }
         }
-
-        return keccak256("IERC3156FlashBorrower.onFlashLoan");
+        return keccak256("ERC3156FlashBorrower.onFlashLoan");
     }
 }

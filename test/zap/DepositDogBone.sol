@@ -31,6 +31,7 @@ contract DepositDogBone is Test {
     function setUp() public {
         sonicFork = vm.createFork(SONIC_RPC_URL);
         vm.selectFork(sonicFork);
+        vm.rollFork(blockFork);
 
         (address wS_Vault_Address, address usdc_Vault_Address) = s_usdc_siloConfig.getSilos();
         wS_Vault = ISilo(wS_Vault_Address);

@@ -54,11 +54,11 @@ interface ISilo {
 
     function asset() external view returns (address);
 
-    function repay(uint256 _assets, address _borrower)
-        external
-        returns (uint256 shares);
+    function repay(uint256 _assets, address _borrower) external returns (uint256 shares);
 
     function withdraw(uint256 _assets, address _receiver, address _owner, CollateralType _collateralType)
         external
         returns (uint256 shares);
+
+    function previewWithdraw(uint256 _assets) external view returns (uint256 shares);
 }
