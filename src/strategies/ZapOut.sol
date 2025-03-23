@@ -4,24 +4,44 @@ pragma solidity 0.8.20;
 import {IZapOut} from "src/interfaces/zapout/IZapOut.sol";
 import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {IInputScaleHelper} from "src/interfaces/IInputScaleHelper.sol";
+import {Ownable} from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
+import {IWithdraw} from "src/interfaces/zapout/IWithdraw.sol";
 
-contract ZapOut is IZapOut {
+contract ZapOut is IZapOut, Ownable {
     address public constant NATIVE_TOKEN = address(0);
-
+    address locked;
     address public inputScaleHelper;
+    address delegator;
 
-    constructor(address _inputScaleHelper) {
+    constructor(address _inputScaleHelper) Ownable(msg.sender) {
         inputScaleHelper = _inputScaleHelper;
     }
 
+    function setDelegator(address _delegator) external onlyOwner {
+        delegator = _delegator;
+    }
+
+    function setInputScaleHelper(address _inputScaleHelper) external onlyOwner {
+        inputScaleHelper = _inputScaleHelper;
+    }
+
+    modifier lock() {
+        require(locked == address(0), "ZapOut: reentrant call");
+        locked = msg.sender;
+        _;
+        locked = address(0);
+    }
+
     ////////////////////////////////// ZAP OUT /////////////////////////////////////
-    function zapOut(bytes memory _zapOutData) external returns (uint256 amountOut) {
+    function zapOut(bytes memory _zapOutData) external lock returns (uint256 amountOut) {
         ZapOutData memory zapOutData = abi.decode(_zapOutData, (ZapOutData));
+        zapOutData.receiver = locked;
         bytes memory extraData = _prepareValidationData(zapOutData.zapOutValidation);
         _receiveLP(zapOutData.erc20Input);
         _withdraw(zapOutData.withdrawData);
         _swap(zapOutData.swapData);
-        return _validateAndTransfer(zapOutData.zapOutValidation, extraData, zapOutData.receiver);
+        amountOut = _validateAndTransfer(zapOutData.zapOutValidation, extraData, zapOutData.receiver);
+        locked = address(0);
     }
     ////////////////////////////////////////////////////////////////////////////////
 
@@ -46,9 +66,8 @@ contract ZapOut is IZapOut {
             return bytes("");
         }
 
-        (bool ok, bytes memory returnedWithdrawData) = withdrawData.delegateTo.delegatecall(
-            abi.encodeWithSelector(withdrawData.funcSelector, withdrawData.withdrawStrategyData)
-        );
+        (bool ok, bytes memory returnedWithdrawData) =
+            delegator.delegatecall(abi.encodeWithSelector(withdrawData.funcSelector, withdrawData.withdrawStrategyData));
 
         if (!ok) {
             if (returnedWithdrawData.length > 0) {
@@ -123,4 +142,31 @@ contract ZapOut is IZapOut {
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    function onFlashLoan(address, address _token, uint256 _amount, uint256 _fee, bytes calldata _data)
+        external
+        returns (bytes32)
+    {
+        if (locked == address(0)) {
+            revert("Zap Out: Can't call onFlashLoan directly");
+        }
+
+        IWithdraw.LoopingData memory loopingData = abi.decode(_data, (IWithdraw.LoopingData));
+
+        (bool ok, bytes memory returnedWithdrawData) = delegator.delegatecall(
+            abi.encodeWithSelector(
+                loopingData.flashLoanSelector, _token, _amount, _fee, locked, loopingData.strategyLoopingData
+            )
+        );
+
+        if (!ok) {
+            if (returnedWithdrawData.length > 0) {
+                revert(string(abi.encodePacked("ZapOut: onFlashLoan failed: ", returnedWithdrawData)));
+            } else {
+                revert("ZapOut: onFlashLoan failed (unknown error)");
+            }
+        }
+
+        return keccak256("IERC3156FlashBorrower.onFlashLoan");
+    }
 }

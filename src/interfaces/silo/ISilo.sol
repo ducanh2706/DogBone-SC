@@ -53,4 +53,12 @@ interface ISilo {
     function config() external view returns (address);
 
     function asset() external view returns (address);
+
+    function repay(uint256 _assets, address _borrower)
+        external
+        returns (uint256 shares);
+
+    function withdraw(uint256 _assets, address _receiver, address _owner, CollateralType _collateralType)
+        external
+        returns (uint256 shares);
 }
