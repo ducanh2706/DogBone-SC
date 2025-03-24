@@ -11,7 +11,6 @@ interface IZapOut {
     }
 
     struct WithdrawData {
-        address delegateTo;
         bytes4 funcSelector;
         bytes withdrawStrategyData;
     }

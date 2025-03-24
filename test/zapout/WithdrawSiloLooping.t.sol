@@ -187,7 +187,6 @@ contract WithdrawAaveTest is Test {
 
         return abi.encode(
             IZapOut.WithdrawData({
-                delegateTo: address(withdrawContract),
                 funcSelector: withdrawContract.withdrawSiloLooping.selector,
                 withdrawStrategyData: siloLoopingWithdrawData
             })

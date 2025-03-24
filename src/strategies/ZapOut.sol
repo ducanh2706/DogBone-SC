@@ -6,8 +6,9 @@ import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.so
 import {IInputScaleHelper} from "src/interfaces/IInputScaleHelper.sol";
 import {Ownable} from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import {IWithdraw} from "src/interfaces/zapout/IWithdraw.sol";
+import {Pausable} from "lib/openzeppelin-contracts/contracts/utils/Pausable.sol";
 
-contract ZapOut is IZapOut, Ownable {
+contract ZapOut is IZapOut, Ownable, Pausable {
     address public constant NATIVE_TOKEN = address(0);
     address locked;
     address public inputScaleHelper;
@@ -15,6 +16,23 @@ contract ZapOut is IZapOut, Ownable {
 
     constructor(address _inputScaleHelper) Ownable(msg.sender) {
         inputScaleHelper = _inputScaleHelper;
+    }
+
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
+    function rescueFunds(address _token, uint256 _amount, address _receiver) external onlyOwner {
+        if (_token == NATIVE_TOKEN) {
+            (bool ok,) = _receiver.call{value: _amount}("");
+            require(ok, "ZapOut: failed to rescue native token");
+        } else {
+            IERC20(_token).transfer(_receiver, _amount);
+        }
     }
 
     function setDelegator(address _delegator) external onlyOwner {
@@ -33,7 +51,7 @@ contract ZapOut is IZapOut, Ownable {
     }
 
     ////////////////////////////////// ZAP OUT /////////////////////////////////////
-    function zapOut(bytes memory _zapOutData) external lock returns (uint256 amountOut) {
+    function zapOut(bytes memory _zapOutData) external lock whenNotPaused returns (uint256 amountOut) {
         ZapOutData memory zapOutData = abi.decode(_zapOutData, (ZapOutData));
         zapOutData.receiver = locked;
         bytes memory extraData = _prepareValidationData(zapOutData.zapOutValidation);
@@ -61,10 +79,11 @@ contract ZapOut is IZapOut, Ownable {
     }
 
     function _withdraw(bytes memory _withdrawData) internal returns (bytes memory) {
-        WithdrawData memory withdrawData = abi.decode(_withdrawData, (WithdrawData));
-        if (withdrawData.delegateTo == address(0)) {
-            return bytes("");
+        if (_withdrawData.length == 0) {
+            return "";
         }
+
+        WithdrawData memory withdrawData = abi.decode(_withdrawData, (WithdrawData));
 
         (bool ok, bytes memory returnedWithdrawData) =
             delegator.delegatecall(abi.encodeWithSelector(withdrawData.funcSelector, withdrawData.withdrawStrategyData));
@@ -141,12 +160,13 @@ contract ZapOut is IZapOut, Ownable {
         }
     }
 
-    receive() external payable {}
+    receive() external whenNotPaused payable {}
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     function onFlashLoan(address, address _token, uint256 _amount, uint256 _fee, bytes calldata _data)
         external
+        whenNotPaused
         returns (bytes32)
     {
         if (locked == address(0)) {
