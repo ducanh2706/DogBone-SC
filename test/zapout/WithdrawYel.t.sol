@@ -7,8 +7,9 @@ import {IZapOut} from "src/interfaces/zapout/IZapOut.sol";
 import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {IWithdraw} from "src/interfaces/zapout/IWithdraw.sol";
 import {Withdraw} from "src/strategies/Withdraw.sol";
+import {IYel} from "src/interfaces/yel/IYel.sol";
 
-contract WithdrawMachFiTest is Test {
+contract WithdrawYelTest is Test {
     enum Scale {
         NOT_SCALE,
         ALLOW_SCALE
@@ -24,13 +25,8 @@ contract WithdrawMachFiTest is Test {
     Withdraw withdrawContract;
     address alice = makeAddr("alice");
 
-    address S_vault = 0x9F5d9f2FDDA7494aA58c90165cF8E6B070Fe92e6;
-    address usdcE_Vault = 0xC84F54B2dB8752f80DEE5b5A48b64a2774d2B445;
-    address usdcE = 0x29219dd400f2Bf60E5a23d13Be72B486D4038894;
-
-    address random_mUsdcE_holder = 0x32eEdcdBd7469ad0dC486E6551BC83E2cf21F77F;
-    address random_mS_holder = 0xE9755DEf636fe3a6Fa28a59421616B144a772Ae1;
-    uint256 coef;
+    address public constant LSTS = 0x555733fBa1CA24ec45e7027E00C4B6c5065BaC96;
+    address public constant STS = 0xE5DA20F15420aD15DE0fa650600aFc998bbE3955;
 
     function setUp() public {
         sonicFork = vm.createFork(SONIC_RPC_URL);
@@ -42,27 +38,26 @@ contract WithdrawMachFiTest is Test {
         zapOut.setDelegator(address(withdrawContract));
     }
 
-    function test_withdrawMachFi_usdce_success() public {
-        coef = 1.85e30;
+    function test_withdrawYel_success() public {
+        uint256 amount = 100e18;
+        uint256 shares = _deposit(amount) / 2;
 
-        uint256 sharesAmount = 100000e8;
-        vm.prank(random_mUsdcE_holder);
-        IERC20(usdcE_Vault).transfer(alice, sharesAmount);
-
-        bytes memory erc20Input = _prepareERC20Input(usdcE_Vault, sharesAmount);
-        bytes memory withdrawData = _prepareWithdrawData(usdcE_Vault, usdcE, 2000e6);
-        bytes[] memory swapData = _prepareSwapData(usdcE, NATIVE_TOKEN, 2000e6, uint8(Scale.NOT_SCALE));
-        bytes memory zapOutValidation = _prepareZapOutValidation(NATIVE_TOKEN, 2000e6 * coef / 1e18);
+        bytes memory erc20Input = _prepareERC20Input(LSTS, shares);
+        bytes memory withdrawData = _prepareWithdrawData(LSTS, STS, shares);
+        bytes[] memory swapDatas = _prepareSwapData(STS, NATIVE_TOKEN, amount / 2, uint8(Scale.ALLOW_SCALE), 1e18);
+        bytes memory zapOutValidation = _prepareZapOutValidation(NATIVE_TOKEN, amount / 2 - 1e18);
 
         vm.startPrank(alice);
-        IERC20(usdcE_Vault).approve(address(zapOut), sharesAmount);
+
+        IERC20(LSTS).approve(address(zapOut), shares);
+
         zapOut.zapOut(
             abi.encode(
                 IZapOut.ZapOutData({
                     receiver: alice,
                     erc20Input: erc20Input,
                     withdrawData: withdrawData,
-                    swapData: swapData,
+                    swapData: swapDatas,
                     zapOutValidation: zapOutValidation
                 })
             )
@@ -70,10 +65,21 @@ contract WithdrawMachFiTest is Test {
 
         vm.stopPrank();
 
-        console.log("Alice native balance: ", address(alice).balance);
+        console.log("Alice native balance", address(alice).balance);
     }
 
-    function test_withdrawMachFi_S_success() public {}
+    function _deposit(uint256 amount) internal returns (uint256 shares) {
+        deal(STS, alice, amount);
+
+        vm.startPrank(alice);
+
+        IERC20(STS).approve(LSTS, amount);
+        IYel(LSTS).bond(STS, amount, 0);
+
+        vm.stopPrank();
+
+        shares = IERC20(LSTS).balanceOf(alice);
+    }
 
     function _prepareERC20Input(address token, uint256 amount) public pure returns (bytes memory) {
         address[] memory tokenAddress = new address[](1);
@@ -86,7 +92,7 @@ contract WithdrawMachFiTest is Test {
         return erc20Input;
     }
 
-    function _prepareSwapData(address inputToken, address outputToken, uint256 amount, uint8 scaleFlag)
+    function _prepareSwapData(address inputToken, address outputToken, uint256 amount, uint8 scaleFlag, uint256 coef)
         internal
         view
         returns (bytes[] memory)
@@ -98,7 +104,7 @@ contract WithdrawMachFiTest is Test {
                 tokenIn: inputToken,
                 amountIn: amount,
                 scaleFlag: scaleFlag,
-                data: abi.encodeWithSelector(this.swap.selector, inputToken, outputToken, amount)
+                data: abi.encodeWithSelector(this.swap.selector, inputToken, outputToken, amount, coef)
             })
         );
         return swapDatas;
@@ -118,19 +124,22 @@ contract WithdrawMachFiTest is Test {
 
         return abi.encode(
             IZapOut.WithdrawData({
-                funcSelector: withdrawContract.withdrawMachFi.selector,
+                funcSelector: withdrawContract.withdrawYel.selector,
                 withdrawStrategyData: aaveWithdrawData
             })
         );
     }
 
-    function swap(address inputToken, address outputToken, uint256 amount) public returns (uint256) {
+    function swap(address inputToken, address outputToken, uint256 amount, uint256 coef) public returns (uint256) {
         _transfer(inputToken, msg.sender, address(this), amount);
 
         if (outputToken == NATIVE_TOKEN) {
-            deal(msg.sender, amount * coef / 1e18);
+            deal(address(this), amount * coef / 1e18);
+            (bool ok,) = msg.sender.call{value: amount * coef / 1e18}("");
+            require(ok, "Transfer failed");
         } else {
-            deal(outputToken, msg.sender, amount * coef / 1e18);
+            deal(outputToken, address(this), amount * coef / 1e18);
+            IERC20(outputToken).transfer(msg.sender, amount * coef / 1e18);
         }
 
         return amount * coef / 1e18;
@@ -149,16 +158,14 @@ contract WithdrawMachFiTest is Test {
         bytes4 selector;
         address tokenIn;
         address tokenOut;
+        uint256 coef;
         assembly {
             selector := mload(add(_data, 32))
             tokenIn := mload(add(_data, 36))
             tokenOut := mload(add(_data, 68))
+            coef := mload(add(_data, 132))
         }
 
-        console.logBytes4(selector);
-        console.log(tokenIn);
-        console.log(tokenOut);
-
-        return (true, abi.encodeWithSelector(selector, tokenIn, tokenOut, _amountIn));
+        return (true, abi.encodeWithSelector(selector, tokenIn, tokenOut, _amountIn, coef));
     }
 }

@@ -43,6 +43,7 @@ contract Withdraw is IWithdraw {
     function withdrawIchi(bytes memory _ichiWithdrawData) public override returns (uint256[] memory amountsOut) {
         AaveWithdrawData memory withdrawData = abi.decode(_ichiWithdrawData, (AaveWithdrawData));
         // amount here is the lp amount to withdraw
+        amountsOut = new uint256[](2);
         (amountsOut[0], amountsOut[1]) = IIChi(withdrawData.vault).withdraw(withdrawData.amount, address(this));
     }
 
@@ -55,6 +56,7 @@ contract Withdraw is IWithdraw {
         address iChiVault = IBeefy(withdrawData.vault).want();
         IBeefy(withdrawData.vault).withdraw(withdrawData.amount);
         uint256 ichiLPWithdraw = IERC20(iChiVault).balanceOf(address(this));
+        amountsOut = new uint256[](2);
         (amountsOut[0], amountsOut[1]) = IIChi(iChiVault).withdraw(ichiLPWithdraw, address(this));
     }
 

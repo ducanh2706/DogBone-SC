@@ -13,7 +13,7 @@ import {ISiloLens} from "src/interfaces/silo/ISiloLens.sol";
 import {ISiloConfig} from "src/interfaces/silo/ISiloConfig.sol";
 import {IERC3156FlashBorrower} from "src/interfaces/flashloan/IERC3156FlashBorrower.sol";
 
-contract WithdrawAaveTest is Test {
+contract WithdrawSiloLoopingTest is Test {
     enum Scale {
         NOT_SCALE,
         ALLOW_SCALE

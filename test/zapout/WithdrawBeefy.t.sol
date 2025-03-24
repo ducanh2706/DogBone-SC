@@ -8,8 +8,9 @@ import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.so
 import {IWithdraw} from "src/interfaces/zapout/IWithdraw.sol";
 import {Withdraw} from "src/strategies/Withdraw.sol";
 import {IIChi} from "src/interfaces/ichi/IIChi.sol";
+import {IBeefy} from "src/interfaces/beefy/IBeefy.sol";
 
-contract WithdrawIchiTest is Test {
+contract WithdrawBeefyTest is Test {
     enum Scale {
         NOT_SCALE,
         ALLOW_SCALE
@@ -28,6 +29,7 @@ contract WithdrawIchiTest is Test {
     address usdc_e = 0x29219dd400f2Bf60E5a23d13Be72B486D4038894;
     address wS = 0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38;
     address ichiVault_usdc_e = 0xc263e421Df94bdf57B27120A9B7B8534A6901D95;
+    address beefy = 0x6f8F189250203C6387656B2cAbb00C23b7b7e680;
     address scUsd = 0xd3DCe716f3eF535C5Ff8d041c1A41C3bd89b97aE;
 
     function setUp() public {
@@ -40,9 +42,9 @@ contract WithdrawIchiTest is Test {
         zapOut.setDelegator(address(withdrawContract));
     }
 
-    function test_withdrawIchi_success_differentToken() public {
+    function test_withdrawBeefy_success_differentToken() public {
         uint256 depositAmount = 1000e6;
-        uint256 shares = _depositIchi(depositAmount);
+        uint256 shares = _depositBeefy(depositAmount);
 
         console.log("Shares: ", shares);
 
@@ -50,22 +52,24 @@ contract WithdrawIchiTest is Test {
         uint256 withdrawShares = shares / 2;
 
         vm.startPrank(alice);
-        (uint256 wS_out, uint256 usdce_out) = IIChi(ichiVault_usdc_e).withdraw(withdrawShares, alice);
+        IBeefy(beefy).withdraw(withdrawShares);
+        uint256 ichiShares = IERC20(ichiVault_usdc_e).balanceOf(alice);
+        (uint256 wS_out, uint256 usdce_out) = IIChi(ichiVault_usdc_e).withdraw(ichiShares, alice);
         vm.stopPrank();
 
         console.log("wS_out: ", wS_out);
         console.log("usdce_out: ", usdce_out);
 
-        bytes memory erc20Input = _prepareERC20Input(ichiVault_usdc_e, withdrawShares);
+        bytes memory erc20Input = _prepareERC20Input(beefy, withdrawShares);
         bytes[] memory swapDatas = new bytes[](2);
         swapDatas[0] = _prepareSwapData(usdc_e, scUsd, usdce_out, uint8(Scale.ALLOW_SCALE), 1e18 + 1e16);
         swapDatas[1] = _prepareSwapData(wS, scUsd, wS_out, uint8(Scale.ALLOW_SCALE), 0.54e6);
-        bytes memory withdrawData = _prepareWithdrawData(ichiVault_usdc_e, usdc_e, withdrawShares);
+        bytes memory withdrawData = _prepareWithdrawData(beefy, usdc_e, withdrawShares);
         bytes memory zapOutValidation = _prepareZapOutValidation(scUsd, 500e6);
 
         vm.startPrank(alice);
 
-        IERC20(ichiVault_usdc_e).approve(address(zapOut), withdrawShares);
+        IERC20(beefy).approve(address(zapOut), withdrawShares);
         zapOut.zapOut(
             abi.encode(
                 IZapOut.ZapOutData({
@@ -82,9 +86,9 @@ contract WithdrawIchiTest is Test {
         console.log("Alice scUsd balance: %d", IERC20(scUsd).balanceOf(alice));
     }
 
-    function test_withdrawIchi_success_sameToken() public {
+    function test_withdrawBeefy_success_sameToken() public {
         uint256 depositAmount = 1000e6;
-        uint256 shares = _depositIchi(depositAmount);
+        uint256 shares = _depositBeefy(depositAmount);
 
         console.log("Shares: ", shares);
 
@@ -92,21 +96,23 @@ contract WithdrawIchiTest is Test {
         uint256 withdrawShares = shares / 2;
 
         vm.startPrank(alice);
-        (uint256 wS_out, uint256 usdce_out) = IIChi(ichiVault_usdc_e).withdraw(withdrawShares, address(this));
+        IBeefy(beefy).withdraw(withdrawShares);
+        uint256 ichiShares = IERC20(ichiVault_usdc_e).balanceOf(alice);
+        (uint256 wS_out, uint256 usdce_out) = IIChi(ichiVault_usdc_e).withdraw(ichiShares, address(this));
         vm.stopPrank();
 
         console.log("wS_out: ", wS_out);
         console.log("usdce_out: ", usdce_out);
 
-        bytes memory erc20Input = _prepareERC20Input(ichiVault_usdc_e, withdrawShares);
+        bytes memory erc20Input = _prepareERC20Input(beefy, withdrawShares);
         bytes[] memory swapDatas = new bytes[](1);
         swapDatas[0] = _prepareSwapData(wS, usdc_e, wS_out, uint8(Scale.ALLOW_SCALE), 0.55e6);
-        bytes memory withdrawData = _prepareWithdrawData(ichiVault_usdc_e, usdc_e, withdrawShares);
-        bytes memory zapOutValidation = _prepareZapOutValidation(usdc_e, 500e6);
+        bytes memory withdrawData = _prepareWithdrawData(beefy, usdc_e, withdrawShares);
+        bytes memory zapOutValidation = _prepareZapOutValidation(usdc_e, 450e6);
 
         vm.startPrank(alice);
 
-        IERC20(ichiVault_usdc_e).approve(address(zapOut), withdrawShares);
+        IERC20(beefy).approve(address(zapOut), withdrawShares);
         zapOut.zapOut(
             abi.encode(
                 IZapOut.ZapOutData({
@@ -123,15 +129,18 @@ contract WithdrawIchiTest is Test {
         console.log("Alice usdcE balance: %d", IERC20(usdc_e).balanceOf(alice));
     }
 
-    function _depositIchi(uint256 _amount) internal returns (uint256) {
+    function _depositBeefy(uint256 _amount) internal returns (uint256) {
         deal(usdc_e, alice, _amount);
         vm.startPrank(alice);
 
         IERC20(usdc_e).approve(ichiVault_usdc_e, _amount);
         uint256 shares = IIChi(ichiVault_usdc_e).deposit(0, _amount, alice);
 
+        IERC20(ichiVault_usdc_e).approve(beefy, shares);
+        IBeefy(beefy).deposit(shares);
+
         vm.stopPrank();
-        return shares;
+        return IERC20(beefy).balanceOf(alice);
     }
 
     function _prepareERC20Input(address token, uint256 amount) public pure returns (bytes memory) {
@@ -176,7 +185,7 @@ contract WithdrawIchiTest is Test {
 
         return abi.encode(
             IZapOut.WithdrawData({
-                funcSelector: withdrawContract.withdrawIchi.selector,
+                funcSelector: withdrawContract.withdrawBeefyIchi.selector,
                 withdrawStrategyData: aaveWithdrawData
             })
         );

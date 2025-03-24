@@ -9,7 +9,7 @@ import {IWithdraw} from "src/interfaces/zapout/IWithdraw.sol";
 import {Withdraw} from "src/strategies/Withdraw.sol";
 import {ISilo} from "src/interfaces/silo/ISilo.sol";
 
-contract WithdrawAaveTest is Test {
+contract WithdrawSiloTest is Test {
     enum Scale {
         NOT_SCALE,
         ALLOW_SCALE

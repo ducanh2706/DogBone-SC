@@ -72,6 +72,9 @@ contract ZapOut is IZapOut, Ownable, Pausable {
     }
 
     function _receiveLP(bytes memory _erc20Input) internal {
+        if (_erc20Input.length == 0) {
+            return;
+        }
         ERC20Input memory erc20Input = abi.decode(_erc20Input, (ERC20Input));
         for (uint256 i = 0; i < erc20Input.tokenAddress.length; i++) {
             IERC20(erc20Input.tokenAddress[i]).transferFrom(msg.sender, address(this), erc20Input.tokenAmount[i]);
@@ -160,7 +163,7 @@ contract ZapOut is IZapOut, Ownable, Pausable {
         }
     }
 
-    receive() external whenNotPaused payable {}
+    receive() external payable whenNotPaused {}
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
