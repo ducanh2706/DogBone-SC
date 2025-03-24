@@ -10,13 +10,6 @@ interface IWithdraw {
         uint256 amount;
     }
 
-    struct SiloWithdrawData {
-        address vault;
-        address underlyingAsset;
-        uint256 amount;
-        ISilo.CollateralType collateralType;
-    }
-
     struct LoopingData {
         bytes4 flashLoanSelector;
         bytes strategyLoopingData;

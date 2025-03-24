@@ -7,9 +7,8 @@ import {IZapOut} from "src/interfaces/zapout/IZapOut.sol";
 import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {IWithdraw} from "src/interfaces/zapout/IWithdraw.sol";
 import {Withdraw} from "src/strategies/Withdraw.sol";
-import {ISilo} from "src/interfaces/silo/ISilo.sol";
 
-contract WithdrawSiloTest is Test {
+contract WithdrawLSTTest is Test {
     enum Scale {
         NOT_SCALE,
         ALLOW_SCALE
@@ -25,13 +24,12 @@ contract WithdrawSiloTest is Test {
     Withdraw withdrawContract;
     address alice = makeAddr("alice");
 
-    address wS = 0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38;
-    address silo0_wS_20 = 0xf55902DE87Bd80c6a35614b48d7f8B612a083C12;
+    address OS = 0xb1e25689D55734FD3ffFc939c4C3Eb52DFf8A794;
+    address STS = 0xE5DA20F15420aD15DE0fa650600aFc998bbE3955;
+    address ANS = 0x0C4E186Eae8aCAA7F7de1315D5AD174BE39Ec987;
 
-    address usdc_e = 0x29219dd400f2Bf60E5a23d13Be72B486D4038894;
-    address silo1_usdcE_20 = 0x322e1d5384aa4ED66AeCa770B95686271de61dc3;
-
-    address random_wS_holder = 0x8D4D19405Ba352e4767681C28936fc0a9A8C8dFe;
+    address random_OS_holder = 0x9F0dF7799f6FDAd409300080cfF680f5A23df4b1;
+    address random_ANS_holder = 0xfA85Fe5A8F5560e9039C04f2b0a90dE1415aBD70;
 
     uint256 coef;
 
@@ -45,29 +43,25 @@ contract WithdrawSiloTest is Test {
         zapOut.setDelegator(address(withdrawContract));
     }
 
-    function test_withdrawSilo_wS_success() public {
-        coef = 0.56e6; // 1 wS = 0.56 USDC
+    function test_withdrawStS_success() public {
+        coef = 1e18 + 1e16;
+        uint256 amount = 1e18;
+        deal(STS, alice, amount);
 
-        uint256 withdrawWS = 100e18;
-        // Withdraw 100 wS from silo0_wS_20
-        uint256 shares = ISilo(silo0_wS_20).previewWithdraw(withdrawWS);
-
-        vm.prank(random_wS_holder);
-        IERC20(silo0_wS_20).transfer(alice, shares);
-
-        bytes memory erc20Input = _prepareERC20Input(silo0_wS_20, shares);
-        bytes memory withdrawData = _prepareWithdrawData(silo0_wS_20, wS, withdrawWS);
-        bytes[] memory swapData = _prepareSwapData(wS, usdc_e, withdrawWS, uint8(Scale.NOT_SCALE));
-        bytes memory zapOutValidation = _prepareZapOutValidation(usdc_e, withdrawWS * coef / 1e18);
+        bytes memory erc20Input = _prepareERC20Input(STS, amount);
+        bytes[] memory swapData = _prepareSwapData(STS, NATIVE_TOKEN, amount, uint8(Scale.NOT_SCALE));
+        bytes memory zapOutValidation = _prepareZapOutValidation(NATIVE_TOKEN, amount * coef / 1e18);
 
         vm.startPrank(alice);
-        IERC20(silo0_wS_20).approve(address(zapOut), shares);
+
+        IERC20(STS).approve(address(zapOut), amount);
+
         zapOut.zapOut(
             abi.encode(
                 IZapOut.ZapOutData({
                     receiver: alice,
                     erc20Input: erc20Input,
-                    withdrawData: withdrawData,
+                    withdrawData: "",
                     swapData: swapData,
                     zapOutValidation: zapOutValidation
                 })
@@ -76,34 +70,30 @@ contract WithdrawSiloTest is Test {
 
         vm.stopPrank();
 
-        console.log("Alice's USDC.e balance", IERC20(usdc_e).balanceOf(alice));
-        assertEq(IERC20(usdc_e).balanceOf(alice), withdrawWS * coef / 1e18);
+        console.log("alice balance: %d", alice.balance);
+        assertEq(alice.balance, amount * coef / 1e18);
     }
 
-    function test_withdrawSilo_wS_failed_exceedAmount() public {
-        coef = 0.56e6; // 1 wS = 0.56 USDC
+    function test_withdrawOS_success() public {
+        coef = 1e18 + 1e16;
+        uint256 amount = 1e18;
+        vm.prank(random_OS_holder);
+        IERC20(OS).transfer(alice, amount);
 
-        uint256 withdrawWS = 100e18;
-        // Withdraw 100 wS from silo0_wS_20
-        uint256 shares = ISilo(silo0_wS_20).previewWithdraw(withdrawWS) / 2;
-
-        vm.prank(random_wS_holder);
-        IERC20(silo0_wS_20).transfer(alice, shares);
-
-        bytes memory erc20Input = _prepareERC20Input(silo0_wS_20, shares);
-        bytes memory withdrawData = _prepareWithdrawData(silo0_wS_20, wS, withdrawWS);
-        bytes[] memory swapData = _prepareSwapData(wS, usdc_e, withdrawWS, uint8(Scale.NOT_SCALE));
-        bytes memory zapOutValidation = _prepareZapOutValidation(usdc_e, withdrawWS * coef / 1e18);
+        bytes memory erc20Input = _prepareERC20Input(OS, amount);
+        bytes[] memory swapData = _prepareSwapData(OS, NATIVE_TOKEN, amount, uint8(Scale.NOT_SCALE));
+        bytes memory zapOutValidation = _prepareZapOutValidation(NATIVE_TOKEN, amount * coef / 1e18);
 
         vm.startPrank(alice);
-        IERC20(silo0_wS_20).approve(address(zapOut), shares);
-        vm.expectRevert();
+
+        IERC20(OS).approve(address(zapOut), amount);
+
         zapOut.zapOut(
             abi.encode(
                 IZapOut.ZapOutData({
                     receiver: alice,
                     erc20Input: erc20Input,
-                    withdrawData: withdrawData,
+                    withdrawData: "",
                     swapData: swapData,
                     zapOutValidation: zapOutValidation
                 })
@@ -111,6 +101,41 @@ contract WithdrawSiloTest is Test {
         );
 
         vm.stopPrank();
+
+        console.log("alice balance: %d", alice.balance);
+        assertEq(alice.balance, amount * coef / 1e18);
+    }
+
+    function test_withdrawAnS_success() public {
+        coef = 1e18 + 1e16;
+        uint256 amount = 1e18;
+        vm.prank(random_ANS_holder);
+        IERC20(ANS).transfer(alice, amount);
+
+        bytes memory erc20Input = _prepareERC20Input(ANS, amount);
+        bytes[] memory swapData = _prepareSwapData(ANS, NATIVE_TOKEN, amount, uint8(Scale.NOT_SCALE));
+        bytes memory zapOutValidation = _prepareZapOutValidation(NATIVE_TOKEN, amount * coef / 1e18);
+
+        vm.startPrank(alice);
+
+        IERC20(ANS).approve(address(zapOut), amount);
+
+        zapOut.zapOut(
+            abi.encode(
+                IZapOut.ZapOutData({
+                    receiver: alice,
+                    erc20Input: erc20Input,
+                    withdrawData: "",
+                    swapData: swapData,
+                    zapOutValidation: zapOutValidation
+                })
+            )
+        );
+
+        vm.stopPrank();
+
+        console.log("alice balance: %d", alice.balance);
+        assertEq(alice.balance, amount * coef / 1e18);
     }
 
     function _prepareERC20Input(address token, uint256 amount) public pure returns (bytes memory) {
@@ -151,13 +176,13 @@ contract WithdrawSiloTest is Test {
         view
         returns (bytes memory)
     {
-        bytes memory siloWithdrawData =
+        bytes memory aaveWithdrawData =
             abi.encode(IWithdraw.AaveWithdrawData({vault: vault, underlyingAsset: underlyingAsset, amount: amount}));
 
         return abi.encode(
             IZapOut.WithdrawData({
-                funcSelector: withdrawContract.withdrawSilo.selector,
-                withdrawStrategyData: siloWithdrawData
+                funcSelector: withdrawContract.withdrawAave.selector,
+                withdrawStrategyData: aaveWithdrawData
             })
         );
     }

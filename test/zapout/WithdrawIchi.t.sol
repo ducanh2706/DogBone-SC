@@ -102,7 +102,7 @@ contract WithdrawIchiTest is Test {
         bytes[] memory swapDatas = new bytes[](1);
         swapDatas[0] = _prepareSwapData(wS, usdc_e, wS_out, uint8(Scale.ALLOW_SCALE), 0.55e6);
         bytes memory withdrawData = _prepareWithdrawData(ichiVault_usdc_e, usdc_e, withdrawShares);
-        bytes memory zapOutValidation = _prepareZapOutValidation(usdc_e, 500e6);
+        bytes memory zapOutValidation = _prepareZapOutValidation(usdc_e, 495e6);
 
         vm.startPrank(alice);
 

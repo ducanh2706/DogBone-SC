@@ -33,10 +33,8 @@ contract Withdraw is IWithdraw {
     }
 
     function withdrawSilo(bytes memory _siloWithdrawData) public override returns (uint256 amountOut) {
-        SiloWithdrawData memory withdrawData = abi.decode(_siloWithdrawData, (SiloWithdrawData));
-        ISilo(withdrawData.vault).withdraw(
-            withdrawData.amount, address(this), address(this), withdrawData.collateralType
-        );
+        AaveWithdrawData memory withdrawData = abi.decode(_siloWithdrawData, (AaveWithdrawData));
+        ISilo(withdrawData.vault).withdraw(withdrawData.amount, address(this), address(this));
         amountOut = withdrawData.amount;
     }
 
