@@ -12,7 +12,7 @@ contract ZapOut is IZapOut, Ownable, Pausable {
     address public constant NATIVE_TOKEN = address(0);
     address locked;
     address public inputScaleHelper;
-    address delegator;
+    address public delegator;
 
     constructor(address _inputScaleHelper) Ownable(msg.sender) {
         inputScaleHelper = _inputScaleHelper;
