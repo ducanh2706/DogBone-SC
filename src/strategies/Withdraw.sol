@@ -14,13 +14,17 @@ import {IERC3156FlashBorrower} from "src/interfaces/flashloan/IERC3156FlashBorro
 import {IERC3156FlashLender} from "src/interfaces/flashloan/IERC3156FlashLender.sol";
 
 contract Withdraw is IWithdraw {
+    address public constant AAVE = 0x5362dBb1e601abF3a4c14c22ffEdA64042E5eAA3;
+    address public constant VICUNA = 0xaa1C02a83362BcE106dFf6eB65282fE8B97A1665;
+
     function withdrawAave(bytes memory _aaveWithdrawData) public override returns (uint256 amountOut) {
         AaveWithdrawData memory withdrawData = abi.decode(_aaveWithdrawData, (AaveWithdrawData));
-        amountOut = IAave(withdrawData.vault).withdraw(withdrawData.underlyingAsset, withdrawData.amount, address(this));
+        amountOut = IAave(AAVE).withdraw(withdrawData.underlyingAsset, withdrawData.amount, address(this));
     }
 
     function withdrawVicuna(bytes memory _vicunaWithdrawData) public override returns (uint256 amountOut) {
-        return withdrawAave(_vicunaWithdrawData);
+        AaveWithdrawData memory withdrawData = abi.decode(_vicunaWithdrawData, (AaveWithdrawData));
+        amountOut = IAave(VICUNA).withdraw(withdrawData.underlyingAsset, withdrawData.amount, address(this));
     }
 
     function withdrawMachFi(bytes memory _machFiWithdrawData) public override returns (uint256 amountOut) {

@@ -1,19 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import {Script} from "forge-std/Script.sol";
+import {Script, console} from "forge-std/Script.sol";
 import {ZapOut} from "src/strategies/ZapOut.sol";
 import {Withdraw} from "src/strategies/Withdraw.sol";
 import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 contract SetDelegatorZapOut is Script {
     // config here
-    address payable zapOut = payable(address(0));
-    address newWithdraw = address(0);
+    address payable zapOut = payable(0x318Ca36eb6d3aF28e87b8aD6a2e7A5d2B7a52d6A);
+    address newWithdraw = 0x2Ea2053f4177BaC2BF7d25Af3c5caFAD4b3ab7ca;
 
     function run() public {
         require(block.chainid == 146, "Not Sonic Chain");
-        require(msg.sender == ZapOut(zapOut).owner(), "Not owner of ZapOut");
 
         vm.startBroadcast();
         ZapOut(zapOut).setDelegator(newWithdraw);
@@ -30,7 +29,6 @@ contract SetInputScaleHelperZapOut is Script {
 
     function run() public {
         require(block.chainid == 146, "Not Sonic Chain");
-        require(msg.sender == ZapOut(zapOut).owner(), "Not owner of ZapOut");
 
         vm.startBroadcast();
         ZapOut(zapOut).setInputScaleHelper(newInputScaleHelper);
@@ -48,7 +46,6 @@ contract PauseZapOut is Script {
         require(block.chainid == 146, "Not Sonic Chain");
 
         require(ZapOut(zapOut).paused() == false, "ZapOut already paused");
-        require(msg.sender == ZapOut(zapOut).owner(), "Not owner of ZapOut");
 
         vm.startBroadcast();
         ZapOut(zapOut).pause();
@@ -66,7 +63,6 @@ contract UnpauseZapOut is Script {
         require(block.chainid == 146, "Not Sonic Chain");
 
         require(ZapOut(zapOut).paused() == true, "ZapOut not paused");
-        require(msg.sender == ZapOut(zapOut).owner(), "Not owner of ZapOut");
 
         vm.startBroadcast();
         ZapOut(zapOut).unpause();
@@ -85,7 +81,6 @@ contract RescueTokensZapOut is Script {
 
     function run() public {
         require(block.chainid == 146, "Not Sonic Chain");
-        require(msg.sender == ZapOut(zapOut).owner(), "Not owner of ZapOut");
 
         uint256 balanceZapOut = IERC20(token).balanceOf(address(ZapOut(zapOut)));
         uint256 balanceReceiver = IERC20(token).balanceOf(receiver);
