@@ -9,7 +9,7 @@ import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.so
 contract SetDelegatorZapOut is Script {
     // config here
     address payable zapOut = payable(0x318Ca36eb6d3aF28e87b8aD6a2e7A5d2B7a52d6A);
-    address newWithdraw = 0x2Ea2053f4177BaC2BF7d25Af3c5caFAD4b3ab7ca;
+    address newWithdraw = 0x2418d43f216de76cC6730f3bbF6a4D395057C65C;
 
     function run() public {
         require(block.chainid == 146, "Not Sonic Chain");
